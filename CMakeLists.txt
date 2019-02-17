@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.5)
-project(random-terrain VERSION 0.0.1 LANGUAGES CXX)
+project(random-terrain VERSION 0.0.1 LANGUAGES C CXX)
 
 if (NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "64bit is required")
 endif()
 
-file(GLOB SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
+add_library(glad ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include/glad/glad.h ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/src/glad.c)
+target_include_directories(glad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include")
+
+set(GLFW_PATH CACHE PATH "Path to GLFW")
+
+file(GLOB SOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 
 set(EXE_NAME random-terrain)
 add_executable(${EXE_NAME} ${SOURCES})
@@ -18,6 +23,15 @@ target_include_directories(${EXE_NAME}
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/external/stb"
         "${CMAKE_CURRENT_SOURCE_DIR}/external/glm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include"
+        "${GLFW_PATH}/include"
+)
+
+target_link_libraries(${EXE_NAME}
+PUBLIC    
+    glad
+    opengl32.lib
+    "${GLFW_PATH}/lib-vc2015/glfw3.lib"
 )
 
 FIND_PACKAGE(Threads)
