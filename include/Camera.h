@@ -19,7 +19,7 @@ public:
 
 private:
     float FOV = 45.0f;
-    float ratio = 1.33333f;
+    float ratio = 16.0f / 9.0f;
     float nearClipDistance = 0.1f;
     float farClipDistance = 100.0f;
 

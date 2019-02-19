@@ -18,14 +18,18 @@ int c_height = 900;
 // clang-format off
 std::vector<float> vertices
 {
-    0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 
-	1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 
-	0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    0.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, 
+	1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, 
+	0.0f, 1.0f, 0.0f,   0.0f, 0.0f, 1.0f,
+
+	0.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, 
+	1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, 
+	0.0f, 0.0f, 1.0f,   0.0f, 1.0f, 0.0f
 };
 
 std::vector<int> indices
 {
-	0, 1, 2
+	0, 1, 2, 3, 4, 5
 };
 // clang-format on
 
@@ -72,7 +76,7 @@ void processInput(GLFWwindow* window, float deltaTime)
     }
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
     {
-        transformation.position = {0.0f, 0.0f, 5.0f};
+        transformation.position = {0.0f, 0.5f, 3.0f};
         transformation.rotation = {0.0f, 0.0f, 0.0f};
     }
     transformation.updateModelMatrix();
@@ -144,7 +148,7 @@ int main()
         glm::mat4 mvp = g_camera.getProjectionMatrix() * g_camera.getViewMatrix();
         glUniformMatrix4fv(0, 1, GL_FALSE, &mvp[0][0]);
 
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
