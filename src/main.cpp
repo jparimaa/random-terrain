@@ -12,26 +12,8 @@
 #include <iostream>
 #include <vector>
 
-int c_width = 1600;
-int c_height = 900;
-
-// clang-format off
-std::vector<float> vertices
-{
-    0.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, 
-	1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, 
-	0.0f, 1.0f, 0.0f,   0.0f, 0.0f, 1.0f,
-
-	0.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, 
-	1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, 
-	0.0f, 0.0f, 1.0f,   0.0f, 1.0f, 0.0f
-};
-
-std::vector<int> indices
-{
-	0, 1, 2, 3, 4, 5
-};
-// clang-format on
+int c_screenWidth = 1600;
+int c_screenHeight = 900;
 
 Camera g_camera;
 double g_mousePosX = 0.0;
@@ -76,10 +58,71 @@ void processInput(GLFWwindow* window, float deltaTime)
     }
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
     {
-        transformation.position = {0.0f, 0.5f, 3.0f};
+        transformation.position = {5.0f, 3.0f, 15.0f};
         transformation.rotation = {0.0f, 0.0f, 0.0f};
     }
     transformation.updateModelMatrix();
+}
+
+void generateMesh(int width, int height, std::vector<int>& indices, std::vector<float>& vertices)
+{
+    const int verticesPerSquare = 6;
+    int count = width * height * verticesPerSquare;
+
+    indices.reserve(count);
+    vertices.reserve(count);
+
+    auto addNormals = [](std::vector<float>& vec) {
+        vec.push_back(0.0f);
+        vec.push_back(1.0f);
+        vec.push_back(0.0f);
+    };
+
+    for (int h = 0; h < height; ++h)
+    {
+        for (int w = 0; w < width; ++w)
+        {
+            float x = static_cast<float>(w);
+            float z = static_cast<float>(h);
+
+            // First triangle
+            vertices.push_back(x);
+            vertices.push_back(0.0f);
+            vertices.push_back(z);
+            addNormals(vertices);
+
+            vertices.push_back(x + 1.0f);
+            vertices.push_back(0.0f);
+            vertices.push_back(z);
+            addNormals(vertices);
+
+            vertices.push_back(x);
+            vertices.push_back(0.0f);
+            vertices.push_back(z + 1.0f);
+            addNormals(vertices);
+
+            // Second triangle
+            vertices.push_back(x + 1.0f);
+            vertices.push_back(0.0f);
+            vertices.push_back(z);
+            addNormals(vertices);
+
+            vertices.push_back(x + 1.0f);
+            vertices.push_back(0.0f);
+            vertices.push_back(z + 1.0f);
+            addNormals(vertices);
+
+            vertices.push_back(x);
+            vertices.push_back(0.0f);
+            vertices.push_back(z + 1.0f);
+            addNormals(vertices);
+        }
+    }
+
+    for (int i = 0; i < count; ++i)
+    {
+        indices.push_back(i);
+    }
 }
 
 int main()
@@ -89,7 +132,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(c_width, c_height, "GL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(c_screenWidth, c_screenHeight, "GL", NULL, NULL);
     if (window == nullptr)
     {
         std::cout << "Failed to create GLFW window\n";
@@ -105,8 +148,12 @@ int main()
         return 2;
     }
 
+    std::vector<int> indices;
+    std::vector<float> vertices;
+    generateMesh(10, 10, indices, vertices);
+
     glEnable(GL_DEPTH_TEST);
-    glViewport(0, 0, c_width, c_height);
+    glViewport(0, 0, c_screenWidth, c_screenHeight);
 
     GLuint vertexArray;
     glGenVertexArrays(1, &vertexArray);
