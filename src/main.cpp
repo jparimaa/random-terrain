@@ -11,14 +11,22 @@
 
 #include <iostream>
 #include <vector>
+#include <random>
 
-int c_screenWidth = 1600;
-int c_screenHeight = 900;
+const int c_screenWidth = 1600;
+const int c_screenHeight = 900;
 
 Camera g_camera;
 double g_mousePosX = 0.0;
 double g_mousePosY = 0.0;
 float g_mouseSensitivity = 0.1f;
+
+const int c_worldWidth = 10;
+const int c_worldHeight = 10;
+
+const std::string shaderPath = SHADER_PATH;
+
+std::random_device g_randomDevice;
 
 void processInput(GLFWwindow* window, float deltaTime)
 {
@@ -64,10 +72,30 @@ void processInput(GLFWwindow* window, float deltaTime)
     transformation.updateModelMatrix();
 }
 
-void generateMesh(int width, int height, std::vector<int>& indices, std::vector<float>& vertices)
+void generateWorld(std::vector<std::vector<float>>& world)
+{
+    world.resize(c_worldHeight + 1);
+    for (std::vector<float>& width : world)
+    {
+        width.resize(c_worldWidth + 1);
+    }
+
+    std::mt19937 rng(g_randomDevice());
+    std::uniform_int_distribution<int> randomWidth(0, c_worldWidth);
+    std::uniform_int_distribution<int> randomHeight(0, c_worldHeight);
+
+    for (int i = 0; i < 50; ++i)
+    {
+        int rw = randomWidth(rng);
+        int rh = randomWidth(rng);
+        world[rh][rw] += 1.0f;
+    }
+}
+
+void generateMesh(const std::vector<std::vector<float>>& world, std::vector<int>& indices, std::vector<float>& vertices)
 {
     const int verticesPerSquare = 6;
-    int count = width * height * verticesPerSquare;
+    int count = c_worldWidth * c_worldHeight * verticesPerSquare;
 
     indices.reserve(count);
     vertices.reserve(count);
@@ -78,42 +106,42 @@ void generateMesh(int width, int height, std::vector<int>& indices, std::vector<
         vec.push_back(0.0f);
     };
 
-    for (int h = 0; h < height; ++h)
+    for (int h = 0; h < c_worldWidth; ++h)
     {
-        for (int w = 0; w < width; ++w)
+        for (int w = 0; w < c_worldHeight; ++w)
         {
             float x = static_cast<float>(w);
             float z = static_cast<float>(h);
 
             // First triangle
             vertices.push_back(x);
-            vertices.push_back(0.0f);
+            vertices.push_back(world[h][w]);
             vertices.push_back(z);
             addNormals(vertices);
 
             vertices.push_back(x + 1.0f);
-            vertices.push_back(0.0f);
+            vertices.push_back(world[h][w + 1]);
             vertices.push_back(z);
             addNormals(vertices);
 
             vertices.push_back(x);
-            vertices.push_back(0.0f);
+            vertices.push_back(world[h + 1][w]);
             vertices.push_back(z + 1.0f);
             addNormals(vertices);
 
             // Second triangle
             vertices.push_back(x + 1.0f);
-            vertices.push_back(0.0f);
+            vertices.push_back(world[h][w + 1]);
             vertices.push_back(z);
             addNormals(vertices);
 
             vertices.push_back(x + 1.0f);
-            vertices.push_back(0.0f);
+            vertices.push_back(world[h + 1][w + 1]);
             vertices.push_back(z + 1.0f);
             addNormals(vertices);
 
             vertices.push_back(x);
-            vertices.push_back(0.0f);
+            vertices.push_back(world[h + 1][w]);
             vertices.push_back(z + 1.0f);
             addNormals(vertices);
         }
@@ -148,9 +176,12 @@ int main()
         return 2;
     }
 
+    std::vector<std::vector<float>> world;
+    generateWorld(world);
+
     std::vector<int> indices;
     std::vector<float> vertices;
-    generateMesh(10, 10, indices, vertices);
+    generateMesh(world, indices, vertices);
 
     glEnable(GL_DEPTH_TEST);
     glViewport(0, 0, c_screenWidth, c_screenHeight);
@@ -176,7 +207,7 @@ int main()
     glEnableVertexAttribArray(1);
 
     Shader shader;
-    shader.createProgram({"../shaders/shader.vert", "../shaders/shader.frag"});
+    shader.createProgram({shaderPath + "shader.vert", shaderPath + "shader.frag"});
     glUseProgram(shader.getProgram());
 
     double lastTime = 0.0;

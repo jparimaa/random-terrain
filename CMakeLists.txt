@@ -16,7 +16,7 @@ set(EXE_NAME random-terrain)
 add_executable(${EXE_NAME} ${SOURCES})
 
 target_compile_features(${EXE_NAME} PUBLIC cxx_std_11)
-target_compile_definitions(${EXE_NAME} PUBLIC -D_CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(${EXE_NAME} PUBLIC -D_CRT_SECURE_NO_WARNINGS -DSHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 
 target_include_directories(${EXE_NAME}
     PRIVATE
