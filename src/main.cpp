@@ -12,6 +12,8 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <algorithm>
+#include <cstdlib>
 
 const int c_screenWidth = 1600;
 const int c_screenHeight = 900;
@@ -22,8 +24,11 @@ double g_mousePosY = 0.0;
 const float c_mouseSensitivity = 0.1f;
 const float c_movementSpeedMultiplier = 3.0f;
 
-const int c_worldWidth = 25;
-const int c_worldHeight = 25;
+const int c_worldWidth = 500;
+const int c_worldHeight = 500;
+const float c_worldScale = 0.01f;
+const int c_numBumps = 15;
+const int c_maxBumpHeight = 100;
 
 const std::string shaderPath = SHADER_PATH;
 
@@ -75,6 +80,30 @@ void processInput(GLFWwindow* window, float deltaTime)
     transformation.updateModelMatrix();
 }
 
+void createBump(std::vector<std::vector<float>>& world, int centerX, int centerY, float bumpHeight, int numSteps)
+{
+    int numStepsForLimits = numSteps - 1;
+    int minX = std::max(0, centerX - numStepsForLimits);
+    int maxX = std::min(c_worldWidth, centerX + numStepsForLimits);
+    int minY = std::max(0, centerY - numStepsForLimits);
+    int maxY = std::min(c_worldHeight, centerY + numStepsForLimits);
+    float bumpStep = bumpHeight / static_cast<float>(numSteps);
+
+    std::mt19937 rng(g_randomDevice());
+    std::uniform_int_distribution<int> randomNoise(1, 10);
+
+    for (int y = minY; y <= maxY; ++y)
+    {
+        for (int x = minX; x <= maxX; ++x)
+        {
+            int distance = std::max(std::abs(y - centerY), std::abs(x - centerX));
+            float height = bumpHeight - static_cast<float>(distance) * bumpStep;
+            float noise = 1.1f / static_cast<float>(randomNoise(rng));
+            world[x][y] = std::max(height + (noise * bumpStep), world[x][y]);
+        }
+    }
+}
+
 void generateWorld(std::vector<std::vector<float>>& world)
 {
     world.resize(c_worldHeight + 1);
@@ -84,14 +113,21 @@ void generateWorld(std::vector<std::vector<float>>& world)
     }
 
     std::mt19937 rng(g_randomDevice());
-    std::uniform_int_distribution<int> randomWidth(0, c_worldWidth);
-    std::uniform_int_distribution<int> randomHeight(0, c_worldHeight);
+    std::uniform_int_distribution<int> randomX(0, c_worldWidth);
+    std::uniform_int_distribution<int> randomY(0, c_worldHeight);
+    std::uniform_int_distribution<int> randomBumpHeight(0, c_maxBumpHeight);
 
-    for (int i = 0; i < 50; ++i)
+    for (int i = 0; i < c_numBumps; ++i)
     {
-        int rw = randomWidth(rng);
-        int rh = randomWidth(rng);
-        world[rh][rw] += (i % 2 == 0 ? -1.0f : 1.0f);
+        int centerX = randomX(rng);
+        int centerY = randomY(rng);
+        int bumpHeight = randomBumpHeight(rng);
+        float scaledBumpHeight = static_cast<float>(bumpHeight) * c_worldScale;
+        int minBumpSteps = static_cast<int>(std::tan(glm::radians(30.0f)) * bumpHeight);
+        int maxBumpSteps = static_cast<int>(std::tan(glm::radians(45.0f)) * bumpHeight);
+        std::uniform_int_distribution<int> randomBumpSteps(minBumpSteps, maxBumpSteps);
+        int numSteps = randomBumpSteps(rng);
+        createBump(world, centerX, centerY, scaledBumpHeight, numSteps);
     }
 }
 
@@ -125,20 +161,20 @@ void generateMesh(const std::vector<std::vector<float>>& world, std::vector<int>
     {
         for (int w = 0; w < c_worldHeight; ++w)
         {
-            float x = static_cast<float>(w);
-            float z = static_cast<float>(h);
+            float x = static_cast<float>(w) * c_worldScale;
+            float z = static_cast<float>(h) * c_worldScale;
 
             // First triangle
             glm::vec3 a(x, world[h][w], z);
-            glm::vec3 b(x + 1.0f, world[h][w + 1], z);
-            glm::vec3 c(x, world[h + 1][w], z + 1.0f);
+            glm::vec3 b(x + c_worldScale, world[h][w + 1], z);
+            glm::vec3 c(x, world[h + 1][w], z + c_worldScale);
 
             addVertex(vertices, a, b, c);
 
             // Second triangle
-            a = glm::vec3(x + 1.0f, world[h][w + 1], z);
-            b = glm::vec3(x + 1.0f, world[h + 1][w + 1], z + 1.0f);
-            c = glm::vec3(x, world[h + 1][w], z + 1.0f);
+            a = glm::vec3(x + c_worldScale, world[h][w + 1], z);
+            b = glm::vec3(x + c_worldScale, world[h + 1][w + 1], z + c_worldScale);
+            c = glm::vec3(x, world[h + 1][w], z + c_worldScale);
 
             addVertex(vertices, a, b, c);
         }
