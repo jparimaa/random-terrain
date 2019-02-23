@@ -19,10 +19,11 @@ const int c_screenHeight = 900;
 Camera g_camera;
 double g_mousePosX = 0.0;
 double g_mousePosY = 0.0;
-float g_mouseSensitivity = 0.1f;
+const float c_mouseSensitivity = 0.1f;
+const float c_movementSpeedMultiplier = 3.0f;
 
-const int c_worldWidth = 10;
-const int c_worldHeight = 10;
+const int c_worldWidth = 25;
+const int c_worldHeight = 25;
 
 const std::string shaderPath = SHADER_PATH;
 
@@ -45,24 +46,26 @@ void processInput(GLFWwindow* window, float deltaTime)
     g_mousePosX = currentMousePosX;
     g_mousePosY = currentMousePosY;
 
-    transformation.rotate(Transformation::UP, -static_cast<float>(mouseDeltaX) * deltaTime * g_mouseSensitivity);
-    transformation.rotate(Transformation::LEFT, static_cast<float>(mouseDeltaY) * deltaTime * g_mouseSensitivity);
+    float rotationSpeed = deltaTime * c_mouseSensitivity;
+    transformation.rotate(Transformation::UP, -static_cast<float>(mouseDeltaX) * rotationSpeed);
+    transformation.rotate(Transformation::LEFT, static_cast<float>(mouseDeltaY) * rotationSpeed);
 
+    float movementSpeed = c_movementSpeedMultiplier * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
-        transformation.move(transformation.getForward() * deltaTime);
+        transformation.move(transformation.getForward() * movementSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
     {
-        transformation.move(-transformation.getForward() * deltaTime);
+        transformation.move(-transformation.getForward() * movementSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     {
-        transformation.move(transformation.getLeft() * deltaTime);
+        transformation.move(transformation.getLeft() * movementSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     {
-        transformation.move(-transformation.getLeft() * deltaTime);
+        transformation.move(-transformation.getLeft() * movementSpeed);
     }
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
     {
@@ -88,8 +91,26 @@ void generateWorld(std::vector<std::vector<float>>& world)
     {
         int rw = randomWidth(rng);
         int rh = randomWidth(rng);
-        world[rh][rw] += 1.0f;
+        world[rh][rw] += (i % 2 == 0 ? -1.0f : 1.0f);
     }
+}
+
+void addVertex(std::vector<float>& vertices, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c)
+{
+    auto addVec3 = [](std::vector<float>& vec, const glm::vec3& v) {
+        vec.push_back(v.x);
+        vec.push_back(v.y);
+        vec.push_back(v.z);
+    };
+
+    addVec3(vertices, a);
+    addVec3(vertices, glm::normalize(glm::cross(c - a, b - a)));
+
+    addVec3(vertices, b);
+    addVec3(vertices, glm::normalize(glm::cross(a - b, c - b)));
+
+    addVec3(vertices, c);
+    addVec3(vertices, glm::normalize(glm::cross(b - c, a - c)));
 }
 
 void generateMesh(const std::vector<std::vector<float>>& world, std::vector<int>& indices, std::vector<float>& vertices)
@@ -100,12 +121,6 @@ void generateMesh(const std::vector<std::vector<float>>& world, std::vector<int>
     indices.reserve(count);
     vertices.reserve(count);
 
-    auto addNormals = [](std::vector<float>& vec) {
-        vec.push_back(0.0f);
-        vec.push_back(1.0f);
-        vec.push_back(0.0f);
-    };
-
     for (int h = 0; h < c_worldWidth; ++h)
     {
         for (int w = 0; w < c_worldHeight; ++w)
@@ -114,36 +129,18 @@ void generateMesh(const std::vector<std::vector<float>>& world, std::vector<int>
             float z = static_cast<float>(h);
 
             // First triangle
-            vertices.push_back(x);
-            vertices.push_back(world[h][w]);
-            vertices.push_back(z);
-            addNormals(vertices);
+            glm::vec3 a(x, world[h][w], z);
+            glm::vec3 b(x + 1.0f, world[h][w + 1], z);
+            glm::vec3 c(x, world[h + 1][w], z + 1.0f);
 
-            vertices.push_back(x + 1.0f);
-            vertices.push_back(world[h][w + 1]);
-            vertices.push_back(z);
-            addNormals(vertices);
-
-            vertices.push_back(x);
-            vertices.push_back(world[h + 1][w]);
-            vertices.push_back(z + 1.0f);
-            addNormals(vertices);
+            addVertex(vertices, a, b, c);
 
             // Second triangle
-            vertices.push_back(x + 1.0f);
-            vertices.push_back(world[h][w + 1]);
-            vertices.push_back(z);
-            addNormals(vertices);
+            a = glm::vec3(x + 1.0f, world[h][w + 1], z);
+            b = glm::vec3(x + 1.0f, world[h + 1][w + 1], z + 1.0f);
+            c = glm::vec3(x, world[h + 1][w], z + 1.0f);
 
-            vertices.push_back(x + 1.0f);
-            vertices.push_back(world[h + 1][w + 1]);
-            vertices.push_back(z + 1.0f);
-            addNormals(vertices);
-
-            vertices.push_back(x);
-            vertices.push_back(world[h + 1][w]);
-            vertices.push_back(z + 1.0f);
-            addNormals(vertices);
+            addVertex(vertices, a, b, c);
         }
     }
 
