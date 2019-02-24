@@ -98,10 +98,17 @@ void createBump(std::vector<std::vector<float>>& world, int centerX, int centerY
         {
             int distance = std::max(std::abs(y - centerY), std::abs(x - centerX));
             float height = bumpHeight - static_cast<float>(distance) * bumpStep;
-            float noise = 1.1f / static_cast<float>(randomNoise(rng));
+            float noise = 1.0f; //1.1f / static_cast<float>(randomNoise(rng));
             world[x][y] = std::max(height + (noise * bumpStep), world[x][y]);
         }
     }
+}
+
+void getBumpPosition(int iteration, int centerX, int centerY, int& x, int& y)
+{
+    float relativeY = 0.01f * std::pow(static_cast<float>(iteration), 2.0f);
+    x = std::min(std::max(0, centerX + iteration), c_worldWidth);
+    y = std::min(std::max(0, centerY + static_cast<int>(relativeY)), c_worldHeight);
 }
 
 void generateWorld(std::vector<std::vector<float>>& world)
@@ -113,21 +120,27 @@ void generateWorld(std::vector<std::vector<float>>& world)
     }
 
     std::mt19937 rng(g_randomDevice());
-    std::uniform_int_distribution<int> randomX(0, c_worldWidth);
-    std::uniform_int_distribution<int> randomY(0, c_worldHeight);
+    std::uniform_int_distribution<int> randomX(50, c_worldWidth - 50);
+    std::uniform_int_distribution<int> randomY(50, c_worldHeight - 50);
     std::uniform_int_distribution<int> randomBumpHeight(0, c_maxBumpHeight);
+    std::uniform_int_distribution<int> randomMountainLength(25, 50);
 
-    for (int i = 0; i < c_numBumps; ++i)
+    int mountainLength = randomMountainLength(rng);
+    int centerX = 250; //randomX(rng);
+    int centerY = 250; //randomY(rng);
+    int x = 0;
+    int y = 0;
+
+    for (int i = -mountainLength; i < mountainLength; ++i)
     {
-        int centerX = randomX(rng);
-        int centerY = randomY(rng);
-        int bumpHeight = randomBumpHeight(rng);
+        getBumpPosition(i, centerX, centerY, x, y);
+        int bumpHeight = 25; //randomBumpHeight(rng);
         float scaledBumpHeight = static_cast<float>(bumpHeight) * c_worldScale;
         int minBumpSteps = static_cast<int>(std::tan(glm::radians(30.0f)) * bumpHeight);
         int maxBumpSteps = static_cast<int>(std::tan(glm::radians(45.0f)) * bumpHeight);
         std::uniform_int_distribution<int> randomBumpSteps(minBumpSteps, maxBumpSteps);
         int numSteps = randomBumpSteps(rng);
-        createBump(world, centerX, centerY, scaledBumpHeight, numSteps);
+        createBump(world, x, y, scaledBumpHeight, numSteps);
     }
 }
 
