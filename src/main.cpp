@@ -71,7 +71,7 @@ void processInput(GLFWwindow* window, float deltaTime)
 
 void createBump(std::vector<std::vector<float>>& world, int centerX, int centerY, float bumpHeightMultiplier, float smoothness)
 {
-    int limit = static_cast<int>(smoothness * 4.0f);
+    int limit = static_cast<int>(smoothness * c_standardDeviationArea);
     int minX = std::max(0, centerX - limit);
     int maxX = std::min(c_worldWidth, centerX + limit);
     int minY = std::max(0, centerY - limit);
@@ -81,20 +81,24 @@ void createBump(std::vector<std::vector<float>>& world, int centerX, int centerY
     {
         for (int x = minX; x <= maxX; ++x)
         {
-            float xDistance = static_cast<float>(x - centerX);
-            float yDistance = static_cast<float>(y - centerY);
-            float distance = std::sqrt(std::pow(xDistance, 2.0f) + std::pow(yDistance, 2.0f));
-            float height = normalDistribution(0.0f, smoothness, distance) * bumpHeightMultiplier;
-            world[x][y] = std::max(world[x][y], height);
+            float d = distance(centerX, centerY, x, y);
+            float height = normalDistribution(0.0f, smoothness, d) * bumpHeightMultiplier;
+            world[x][y] += height;
         }
     }
 }
 
-void getBumpPosition(int iteration, int centerX, int centerY, int& x, int& y)
+bool getBumpPosition(int iteration, int centerX, int centerY, int& x, int& y)
 {
-    float relativeY = 0.01f * std::pow(static_cast<float>(iteration), 2.0f);
-    x = std::min(std::max(0, centerX + iteration), c_worldWidth);
-    y = std::min(std::max(0, centerY + static_cast<int>(relativeY)), c_worldHeight);
+    float relativeY = parabola(0.01f, static_cast<float>(iteration), 2.0f);
+
+    int newX = centerX + iteration;
+    int newY = centerY + static_cast<int>(relativeY);
+    bool insideLimits = newX >= 0 && newX <= c_worldWidth && newY >= 0 && newY <= c_worldHeight;
+
+    x = std::min(std::max(0, newX), c_worldWidth);
+    y = std::min(std::max(0, newY), c_worldHeight);
+    return insideLimits;
 }
 
 void generateWorld(std::vector<std::vector<float>>& world)
@@ -108,8 +112,8 @@ void generateWorld(std::vector<std::vector<float>>& world)
     std::mt19937 rng(g_randomDevice());
     std::uniform_int_distribution<int> randomX(0, c_worldWidth);
     std::uniform_int_distribution<int> randomY(0, c_worldHeight);
-    std::uniform_int_distribution<int> randomMountainLength(50, 100);
-    std::uniform_real_distribution<float> randomBumpHeightMultiplier(90.0f, 100.0f);
+    std::uniform_int_distribution<int> randomMountainLength(200, 300);
+    std::uniform_real_distribution<float> randomBumpHeightMultiplier(5.0f, 10.0f);
     std::uniform_real_distribution<float> randomSmoothness(11.0f, 17.0f);
 
     int mountainLength = randomMountainLength(rng);
@@ -122,12 +126,14 @@ void generateWorld(std::vector<std::vector<float>>& world)
 
     for (int i = -mountainLength / 2; i < mountainLength / 2; ++i)
     {
-        getBumpPosition(i, centerX, centerY, x, y);
-        float sinStep = std::sin(static_cast<float>(i) / 50.0f);
-        sinStep = (sinStep + 2.0f) / 2.0f;
-        float bumpHeightMultiplier = bumpHeightBaseMultiplier * sinStep;
-        float smoothness = randomSmoothness(rng);
-        createBump(world, x, y, bumpHeightMultiplier, smoothness);
+        if (getBumpPosition(i, centerX, centerY, x, y))
+        {
+            float sinStep = std::sin(static_cast<float>(i) / 10.0f);
+            sinStep = (sinStep + 2.0f) / 2.0f;
+            float bumpHeightMultiplier = bumpHeightBaseMultiplier * sinStep;
+            float smoothness = randomSmoothness(rng);
+            createBump(world, x, y, bumpHeightMultiplier, smoothness);
+        }
     }
 }
 
