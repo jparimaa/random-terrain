@@ -63,15 +63,15 @@ void processInput(GLFWwindow* window, float deltaTime)
     }
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
     {
-        transformation.position = {5.0f, 3.0f, 15.0f};
+        transformation.position = {2.0f, 2.0f, 6.0f};
         transformation.rotation = {0.0f, 0.0f, 0.0f};
     }
     transformation.updateModelMatrix();
 }
 
-void createBump(std::vector<std::vector<float>>& world, int centerX, int centerY, float bumpHeightMultiplier, float smoothness)
+float createBump(std::vector<std::vector<float>>& world, int centerX, int centerY, float bumpHeightMultiplier, float deviation)
 {
-    int limit = static_cast<int>(smoothness * c_standardDeviationArea);
+    int limit = static_cast<int>(deviation * c_standardDeviationArea);
     int minX = std::max(0, centerX - limit);
     int maxX = std::min(c_worldWidth, centerX + limit);
     int minY = std::max(0, centerY - limit);
@@ -82,10 +82,11 @@ void createBump(std::vector<std::vector<float>>& world, int centerX, int centerY
         for (int x = minX; x <= maxX; ++x)
         {
             float d = distance(centerX, centerY, x, y);
-            float height = normalDistribution(0.0f, smoothness, d) * bumpHeightMultiplier;
+            float height = normalDistribution(0.0f, deviation, d) * bumpHeightMultiplier;
             world[x][y] += height;
         }
     }
+    return world[centerX][centerY];
 }
 
 bool getBumpPosition(int iteration, int centerX, int centerY, int& x, int& y)
@@ -101,6 +102,62 @@ bool getBumpPosition(int iteration, int centerX, int centerY, int& x, int& y)
     return insideLimits;
 }
 
+void createMountain(std::vector<std::vector<float>>& world)
+{
+    std::mt19937 rng(g_randomDevice());
+    std::uniform_int_distribution<int> randomX(0, c_worldWidth);
+    std::uniform_int_distribution<int> randomY(0, c_worldHeight);
+    std::uniform_int_distribution<int> randomMountainLength(c_minMountainLength, c_maxMountainLength);
+    std::uniform_real_distribution<float> randomBumpHeightMultiplier(c_minHeightMultiplier, c_maxHeightMultiplier);
+    std::uniform_real_distribution<float> randomDeviation(c_minBumpDeviation, c_maxBumpDeviation);
+
+    int mountainLength = randomMountainLength(rng);
+    float bumpHeightBaseMultiplier = randomBumpHeightMultiplier(rng);
+
+    int centerX = randomX(rng);
+    int centerY = randomY(rng);
+    int x = 0;
+    int y = 0;
+
+    for (int i = -mountainLength / 2; i < mountainLength / 2; i += c_bumpDensity)
+    {
+        if (getBumpPosition(i, centerX, centerY, x, y))
+        {
+            float sinStep = std::sin(static_cast<float>(i) * c_mountainWaveLength);
+            sinStep = (sinStep + 2.0f) / 2.0f;
+            float bumpHeightMultiplier = bumpHeightBaseMultiplier * sinStep;
+            float deviation = randomDeviation(rng);
+            createBump(world, x, y, bumpHeightMultiplier, deviation);
+        }
+    }
+}
+
+int getPitPosition(int startHeight, int endHeight, int x)
+{
+    float t = static_cast<float>(x) / static_cast<float>(c_worldWidth);
+    return interpolate(startHeight, endHeight, t);
+}
+
+void createRiver(std::vector<std::vector<float>>& world)
+{
+    std::mt19937 rng(g_randomDevice());
+    std::uniform_int_distribution<int> randomY(0, c_worldHeight);
+
+    int startHeight = randomY(rng);
+    int endHeight = randomY(rng);
+    float currentDepth = 0.0f;
+
+    for (int x = 0; x <= c_worldWidth; x += c_riverPitDensity)
+    {
+        int y = getPitPosition(startHeight, endHeight, x);
+        currentDepth = world[x][y];
+        while (currentDepth > -c_riverDepth)
+        {
+            currentDepth = createBump(world, x, y, -2.0f, c_riverDeviation);
+        }
+    }
+}
+
 void generateWorld(std::vector<std::vector<float>>& world)
 {
     world.resize(c_worldHeight + 1);
@@ -109,32 +166,12 @@ void generateWorld(std::vector<std::vector<float>>& world)
         width.resize(c_worldWidth + 1);
     }
 
-    std::mt19937 rng(g_randomDevice());
-    std::uniform_int_distribution<int> randomX(0, c_worldWidth);
-    std::uniform_int_distribution<int> randomY(0, c_worldHeight);
-    std::uniform_int_distribution<int> randomMountainLength(200, 300);
-    std::uniform_real_distribution<float> randomBumpHeightMultiplier(5.0f, 10.0f);
-    std::uniform_real_distribution<float> randomSmoothness(11.0f, 17.0f);
-
-    int mountainLength = randomMountainLength(rng);
-    float bumpHeightBaseMultiplier = randomBumpHeightMultiplier(rng);
-
-    int centerX = 250; //randomX(rng);
-    int centerY = 250; //randomY(rng);
-    int x = 0;
-    int y = 0;
-
-    for (int i = -mountainLength / 2; i < mountainLength / 2; ++i)
+    for (int i = 0; i < c_numMountains; ++i)
     {
-        if (getBumpPosition(i, centerX, centerY, x, y))
-        {
-            float sinStep = std::sin(static_cast<float>(i) / 10.0f);
-            sinStep = (sinStep + 2.0f) / 2.0f;
-            float bumpHeightMultiplier = bumpHeightBaseMultiplier * sinStep;
-            float smoothness = randomSmoothness(rng);
-            createBump(world, x, y, bumpHeightMultiplier, smoothness);
-        }
+        createMountain(world);
     }
+
+    createRiver(world);
 }
 
 void addVertex(std::vector<float>& vertices, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c)
