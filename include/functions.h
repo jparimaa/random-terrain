@@ -32,3 +32,13 @@ inline int interpolate(int a, int b, float t)
     float x = static_cast<float>(a) * (1.0f - t) + static_cast<float>(b) * t;
     return static_cast<int>(x);
 }
+
+inline float slope(float x, float exponent)
+{
+    return std::pow(x, exponent) / (std::pow(x, exponent) + std::pow((1 - x), exponent));
+}
+
+inline float divide(int dividend, int divider)
+{
+    return static_cast<float>(dividend) / static_cast<float>(divider);
+}

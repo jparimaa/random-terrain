@@ -34,3 +34,5 @@ const float c_standardDeviationArea = 4.0f;
 const float c_riverDepth = 0.2f;
 const float c_riverDeviation = 15.0f;
 const int c_riverPitDensity = 10;
+const float c_riverSlopeSteepness = 1.5f;
+const int c_riverEndPointMargin = 30;

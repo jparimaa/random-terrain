@@ -134,14 +134,14 @@ void createMountain(std::vector<std::vector<float>>& world)
 
 int getPitPosition(int startHeight, int endHeight, int x)
 {
-    float t = static_cast<float>(x) / static_cast<float>(c_worldWidth);
-    return interpolate(startHeight, endHeight, t);
+    float yt = slope(divide(x, c_worldWidth), c_riverSlopeSteepness);
+    return interpolate(startHeight, endHeight, yt);
 }
 
 void createRiver(std::vector<std::vector<float>>& world)
 {
     std::mt19937 rng(g_randomDevice());
-    std::uniform_int_distribution<int> randomY(0, c_worldHeight);
+    std::uniform_int_distribution<int> randomY(c_riverEndPointMargin, c_worldHeight - c_riverEndPointMargin);
 
     int startHeight = randomY(rng);
     int endHeight = randomY(rng);
