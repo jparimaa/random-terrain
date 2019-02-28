@@ -22,9 +22,10 @@ inline float distance(int x1, int y1, int x2, int y2)
     return std::sqrt(std::pow(xDistance, 2.0f) + std::pow(yDistance, 2.0f));
 }
 
-inline float parabola(float a, float x, float exponent)
+inline float parabola(float a, float x, int exponent)
 {
-    return a * std::pow(x, exponent);
+    float p = std::pow(x, exponent);
+    return a * p;
 }
 
 inline int interpolate(int a, int b, float t)

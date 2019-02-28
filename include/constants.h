@@ -22,13 +22,17 @@ const float c_worldScale = 0.01f;
 const int c_numMountains = 5;
 const int c_minMountainLength = 200;
 const int c_maxMountainLength = 300;
-const float c_minHeightMultiplier = 40.0f;
-const float c_maxHeightMultiplier = 50.0f;
+const float c_minHeightMultiplier = 20.0f;
+const float c_maxHeightMultiplier = 30.0f;
 const float c_minBumpDeviation = 11.0f;
 const float c_maxBumpDeviation = 17.0f;
 const float c_mountainWaveLength = 0.1f;
 const int c_bumpDensity = 3;
 const float c_standardDeviationArea = 4.0f;
+const float c_maxParabolaCoefficient = 0.02f;
+const float c_minParabolaCoefficient = -0.02f;
+const int c_maxParabolaExponent = 2;
+const int c_minParabolaExponent = 2;
 
 // River
 const float c_riverDepth = 0.2f;

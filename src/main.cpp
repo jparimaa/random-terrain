@@ -89,9 +89,10 @@ float createBump(std::vector<std::vector<float>>& world, int centerX, int center
     return world[centerX][centerY];
 }
 
-bool getBumpPosition(int iteration, int centerX, int centerY, int& x, int& y)
+bool getBumpPosition(int iteration, int centerX, int centerY, int& x, int& y, float a, int exp)
 {
-    float relativeY = parabola(0.01f, static_cast<float>(iteration), 2.0f);
+    float relativeY = 0.0f;
+    relativeY = parabola(a, static_cast<float>(iteration), exp);
 
     int newX = centerX + iteration;
     int newY = centerY + static_cast<int>(relativeY);
@@ -110,18 +111,25 @@ void createMountain(std::vector<std::vector<float>>& world)
     std::uniform_int_distribution<int> randomMountainLength(c_minMountainLength, c_maxMountainLength);
     std::uniform_real_distribution<float> randomBumpHeightMultiplier(c_minHeightMultiplier, c_maxHeightMultiplier);
     std::uniform_real_distribution<float> randomDeviation(c_minBumpDeviation, c_maxBumpDeviation);
+    std::uniform_real_distribution<float> randomCoefficient(c_minParabolaCoefficient, c_maxParabolaCoefficient);
+    std::uniform_int_distribution<int> randomExponent(c_minParabolaExponent, c_maxParabolaExponent);
 
     int mountainLength = randomMountainLength(rng);
+    std::uniform_int_distribution<int> randomIterationStart(-mountainLength / 2, mountainLength / 2);
+
     float bumpHeightBaseMultiplier = randomBumpHeightMultiplier(rng);
 
     int centerX = randomX(rng);
     int centerY = randomY(rng);
+    int iterationStart = randomIterationStart(rng);
     int x = 0;
     int y = 0;
+    float a = randomCoefficient(rng);
+    int exp = randomExponent(rng);
 
-    for (int i = -mountainLength / 2; i < mountainLength / 2; i += c_bumpDensity)
+    for (int i = 0; i < mountainLength; i += c_bumpDensity)
     {
-        if (getBumpPosition(i, centerX, centerY, x, y))
+        if (getBumpPosition(iterationStart + i, centerX, centerY, x, y, a, exp))
         {
             float sinStep = std::sin(static_cast<float>(i) * c_mountainWaveLength);
             sinStep = (sinStep + 2.0f) / 2.0f;
