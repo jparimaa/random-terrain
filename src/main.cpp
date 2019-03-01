@@ -22,6 +22,7 @@ double g_mousePosX = 0.0;
 double g_mousePosY = 0.0;
 
 std::random_device g_randomDevice;
+std::mt19937 g_rng(c_randomSeed ? g_randomDevice() : c_seed);
 
 void processInput(GLFWwindow* window, float deltaTime)
 {
@@ -96,16 +97,17 @@ bool getBumpPosition(int iteration, int centerX, int centerY, int& x, int& y, fl
 
     int newX = centerX + iteration;
     int newY = centerY + static_cast<int>(relativeY);
-    bool insideLimits = newX >= 0 && newX <= c_worldWidth && newY >= 0 && newY <= c_worldHeight;
+    int widthLimit = c_worldWidth - c_mountainEdgeMargin;
+    int heightLimit = c_worldHeight - c_mountainEdgeMargin;
+    bool insideLimits = newX >= 0 && newX <= widthLimit && newY >= 0 && newY <= heightLimit;
 
-    x = std::min(std::max(0, newX), c_worldWidth);
-    y = std::min(std::max(0, newY), c_worldHeight);
+    x = std::min(std::max(0, newX), widthLimit);
+    y = std::min(std::max(0, newY), heightLimit);
     return insideLimits;
 }
 
 void createMountain(std::vector<std::vector<float>>& world)
 {
-    std::mt19937 rng(g_randomDevice());
     std::uniform_int_distribution<int> randomX(0, c_worldWidth);
     std::uniform_int_distribution<int> randomY(0, c_worldHeight);
     std::uniform_int_distribution<int> randomMountainLength(c_minMountainLength, c_maxMountainLength);
@@ -114,18 +116,18 @@ void createMountain(std::vector<std::vector<float>>& world)
     std::uniform_real_distribution<float> randomCoefficient(c_minParabolaCoefficient, c_maxParabolaCoefficient);
     std::uniform_int_distribution<int> randomExponent(c_minParabolaExponent, c_maxParabolaExponent);
 
-    int mountainLength = randomMountainLength(rng);
+    int mountainLength = randomMountainLength(g_rng);
     std::uniform_int_distribution<int> randomIterationStart(-mountainLength / 2, mountainLength / 2);
 
-    float bumpHeightBaseMultiplier = randomBumpHeightMultiplier(rng);
+    float bumpHeightBaseMultiplier = randomBumpHeightMultiplier(g_rng);
 
-    int centerX = randomX(rng);
-    int centerY = randomY(rng);
-    int iterationStart = randomIterationStart(rng);
+    int centerX = randomX(g_rng);
+    int centerY = randomY(g_rng);
+    int iterationStart = randomIterationStart(g_rng);
     int x = 0;
     int y = 0;
-    float a = randomCoefficient(rng);
-    int exp = randomExponent(rng);
+    float a = randomCoefficient(g_rng);
+    int exp = randomExponent(g_rng);
 
     for (int i = 0; i < mountainLength; i += c_bumpDensity)
     {
@@ -134,7 +136,7 @@ void createMountain(std::vector<std::vector<float>>& world)
             float sinStep = std::sin(static_cast<float>(i) * c_mountainWaveLength);
             sinStep = (sinStep + 2.0f) / 2.0f;
             float bumpHeightMultiplier = bumpHeightBaseMultiplier * sinStep;
-            float deviation = randomDeviation(rng);
+            float deviation = randomDeviation(g_rng);
             createBump(world, x, y, bumpHeightMultiplier, deviation);
         }
     }
@@ -148,11 +150,8 @@ int getPitPosition(int startHeight, int endHeight, int x)
 
 void createRiver(std::vector<std::vector<float>>& world)
 {
-    std::mt19937 rng(g_randomDevice());
-    std::uniform_int_distribution<int> randomY(c_riverEndPointMargin, c_worldHeight - c_riverEndPointMargin);
-
-    int startHeight = randomY(rng);
-    int endHeight = randomY(rng);
+    int startHeight = c_riverEndPointMargin;
+    int endHeight = c_worldHeight - c_riverEndPointMargin;
     float currentDepth = 0.0f;
 
     for (int x = 0; x <= c_worldWidth; x += c_riverPitDensity)
