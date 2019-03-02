@@ -4,8 +4,6 @@
 #include "functions.h"
 #include "constants.h"
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb_image_write.h>
 #include <glm/glm.hpp>
 
 #include <glad/glad.h>
